@@ -1,280 +1,316 @@
 import { useState } from "react";
-import axios from 'axios'
+import axios from "axios";
 import { Link } from "react-router-dom";
 
 const Books = () => {
+  const [data, setData] = useState([]);
+  const [query, setQuery] = useState("");
+  const [darkTheme, setDarkTheme] = useState(true);
+  const [showMoreId, setShowMoreId] = useState(null);
+  const [addBook, setAddBook] = useState(false);
+  const [title, setTitle] = useState("");
+  const [author, setAuthor] = useState("");
+  const [publicationDate, setPublicationDate] = useState("");
+  const [synopsis, setSynopsis] = useState("");
+  const [genre, setGenre] = useState("");
+  const [coverImage, setCoverImage] = useState("");
 
+  // Track the ID of the book being edited
+  const [editingBookId, setEditingBookId] = useState(null);
 
-    const [data, setData] = useState([]);
-    const [query, setQuery] = useState("");
-    const [darkTheme, setDarkTheme] = useState(true);
-    const [showMore, setShowMore] = useState(false);
-    const [addBook, setAddBook] = useState(false);
-    const [title, setTitle] = useState("title");
-    const [author, setAuthor] = useState("author name");
-    const [publicationDate, setPublicationDate] = useState("date");
-    const [synopsis, setSynopsis] = useState("synopsis");
-    const [genre, setGenre] = useState("genre");
-    const [coverImage, setCoverImage] = useState("image link");
+  const fetchData = async () => {
+    try {
+      const res = await axios.get(
+        "https://react-db--01-default-rtdb.asia-southeast1.firebasedatabase.app/books.json"
+      );
+      const booksArray = Object.keys(res.data).map((key) => ({
+        id: key,
+        ...res.data[key],
+      }));
+      setData(booksArray);
+    } catch (error) {
+      console.error("Failed to fetch books", error);
+    }
+  };
 
-    const fetchData = async () => {
-        let res = await axios.get(
-            "https://react-db--01-default-rtdb.asia-southeast1.firebasedatabase.app/books.json"
-        );
-        const booksArray = Object.keys(res.data).map((key) => ({
-            id: key,
-            ...res.data[key],
-        }));
-        setData(booksArray);
-        console.log(res.data)
+  const handleSearch = (event) => {
+    setQuery(event.target.value);
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    const newBook = {
+      title,
+      author,
+      publicationDate,
+      coverImage,
+      synopsis,
+      genre,
     };
-
-    const handleSearch = (event) => {
-        setQuery(event.target.value);
-    };
-
-    const handleSubmit = async (event) => {
-        event.preventDefault();
-        let newBook = {
-            title,
-            author,
-            publicationDate,
-            coverImage,
-            synopsis,
-            genre,
-            isEditable: false,
-        };
-        await axios.post(
-            "https://react-db--01-default-rtdb.asia-southeast1.firebasedatabase.app/books.json",
-            newBook
-        );
-        fetchData();
-        alert("New book added");
-    };
-
-    const handleDelete = async (id) => {
-        await axios.delete(
-            `https://react-db--01-default-rtdb.asia-southeast1.firebasedatabase.app/books/${id}.json`
-        );
-        fetchData();
-        alert("Book deleted");
-    };
-
-    const handleEdit = (id) => {
-        const updatedData = data.map((book) =>
-            book.id === id ? { ...book, isEditable: !book.isEditable } : book
-        );
-        setData(updatedData);
-    };
-
-    const handleUpdate = async (id, updatedBook) => {
-        await axios.put(
-            `https://react-db--01-default-rtdb.asia-southeast1.firebasedatabase.app/books/${id}.json`,
-            updatedBook
-        );
-        fetchData();
-        alert("Book updated");
-    };
-
-    const filteredData = data.filter(
-        (book) =>
-            book.title.toLowerCase().includes(query.toLowerCase()) ||
-            book.author.toLowerCase().includes(query.toLowerCase()) ||
-            book.genre.toLowerCase().includes(query.toLowerCase()) ||
-            book.publicationDate === query
+    await axios.post(
+      "https://react-db--01-default-rtdb.asia-southeast1.firebasedatabase.app/books.json",
+      newBook
     );
-    return (
-        <>
-            <div className={darkTheme ? "light" : "dark"}>
-                <label htmlFor="">
-                    Darkmode
-                    <input
-                        type="checkbox"
-                        onChange={() => setDarkTheme(!darkTheme)}
-                    />
-                </label>
+    fetchData();
+    alert("New book added");
+    setTitle("");
+    setAuthor("");
+    setPublicationDate("");
+    setSynopsis("");
+    setGenre("");
+    setCoverImage("");
+  };
 
-                <button onClick={fetchData}>Get All Books</button>
+  const handleDelete = async (id) => {
+    await axios.delete(
+      `https://react-db--01-default-rtdb.asia-southeast1.firebasedatabase.app/books/${id}.json`
+    );
+    fetchData();
+    alert("Book deleted");
+  };
+
+  const handleEditToggle = (id) => {
+    // Toggle the edit state based on the selected book's ID
+    setEditingBookId(editingBookId === id ? null : id);
+  };
+
+  const handleUpdate = async (id, updatedBook) => {
+    await axios.put(
+      `https://react-db--01-default-rtdb.asia-southeast1.firebasedatabase.app/books/${id}.json`,
+      updatedBook
+    );
+    fetchData();
+    alert("Book updated");
+    setEditingBookId(null); // Close edit mode after updating
+  };
+
+  const filteredData = data.filter(
+    (book) =>
+      book.title.toLowerCase().includes(query.toLowerCase()) ||
+      book.author.toLowerCase().includes(query.toLowerCase()) ||
+      book.genre.toLowerCase().includes(query.toLowerCase()) ||
+      book.publicationDate === query
+  );
+
+  const toggleShowMore = (id) => {
+    setShowMoreId(showMoreId === id ? null : id);
+  };
+
+  return (
+    <div className={darkTheme ? "light" : "dark"}>
+      <label htmlFor="darkmode-toggle">
+        Darkmode
+        <input
+          id="darkmode-toggle"
+          type="checkbox"
+          onChange={() => setDarkTheme(!darkTheme)}
+        />
+      </label>
+
+      <button onClick={fetchData}>Get All Books</button>
+      <input
+        type="text"
+        placeholder="Search by title, author, or genre"
+        value={query}
+        onChange={handleSearch}
+      />
+
+      <button onClick={() => setAddBook(!addBook)}>
+        {addBook ? "Done" : "Add Book"}
+      </button>
+
+      {addBook && (
+        <form onSubmit={handleSubmit}>
+          <input
+            type="text"
+            placeholder="Title"
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+            required
+          />
+          <input
+            type="text"
+            placeholder="Publication Date"
+            value={publicationDate}
+            onChange={(event) => setPublicationDate(event.target.value)}
+            required
+          />
+          <input
+            type="text"
+            placeholder="Author"
+            value={author}
+            onChange={(event) => setAuthor(event.target.value)}
+            required
+          />
+          <input
+            type="text"
+            placeholder="Genre"
+            value={genre}
+            onChange={(event) => setGenre(event.target.value)}
+            required
+          />
+          <input
+            type="text"
+            placeholder="Synopsis"
+            value={synopsis}
+            onChange={(event) => setSynopsis(event.target.value)}
+          />
+          <input
+            type="text"
+            placeholder="Cover Image URL"
+            value={coverImage}
+            onChange={(event) => setCoverImage(event.target.value)}
+          />
+          <button type="submit">Add</button>
+        </form>
+      )}
+
+      <select
+        onChange={(event) => setQuery(event.target.value)}
+        value={query}
+      >
+        <option value="">Select by genre</option>
+        {data.map((book) => (
+          <option key={book.id} value={book.genre}>
+            {book.genre}
+          </option>
+        ))}
+      </select>
+
+      <select
+        onChange={(event) => setQuery(event.target.value)}
+        value={query}
+      >
+        <option value="">Select by date</option>
+        {data.map((book) => (
+          <option key={book.id} value={book.publicationDate}>
+            {book.publicationDate}
+          </option>
+        ))}
+      </select>
+
+      <div className="cont">
+        {filteredData.map((book) => (
+          <div key={book.id}>
+            <Link to={`/books/${book.id}`} style={{textDecoration:'none',color:'red'}}>
+              <img src={book.coverImage} alt="Book cover" />
+              <p>{book.title}</p>
+              <p>{book.author}</p>
+              <p>{book.genre}</p>
+            </Link>
+            <button onClick={() => handleDelete(book.id)}>Delete</button>
+            <button onClick={() => handleEditToggle(book.id)}>
+              {editingBookId === book.id ? "Cancel" : "Edit"}
+            </button>
+
+            {editingBookId === book.id && (
+              <>
                 <input
-                    type="text"
-                    placeholder="Search by title, author, or genre"
-                    value={query}
-                    onChange={handleSearch}
+                  type="text"
+                  value={book.title}
+                  onChange={(event) =>
+                    setData((prevData) =>
+                      prevData.map((b) =>
+                        b.id === book.id
+                          ? { ...b, title: event.target.value }
+                          : b
+                      )
+                    )
+                  }
                 />
-                <button onClick={() => setAddBook(!addBook)}>
-                    {addBook ? "done" : "Add Book"}
+                <input
+                  type="text"
+                  value={book.publicationDate}
+                  onChange={(event) =>
+                    setData((prevData) =>
+                      prevData.map((b) =>
+                        b.id === book.id
+                          ? { ...b, publicationDate: event.target.value }
+                          : b
+                      )
+                    )
+                  }
+                />
+                <input
+                  type="text"
+                  value={book.author}
+                  onChange={(event) =>
+                    setData((prevData) =>
+                      prevData.map((b) =>
+                        b.id === book.id
+                          ? { ...b, author: event.target.value }
+                          : b
+                      )
+                    )
+                  }
+                />
+                <input
+                  type="text"
+                  value={book.genre}
+                  onChange={(event) =>
+                    setData((prevData) =>
+                      prevData.map((b) =>
+                        b.id === book.id
+                          ? { ...b, genre: event.target.value }
+                          : b
+                      )
+                    )
+                  }
+                />
+                <input
+                  type="text"
+                  value={book.synopsis}
+                  onChange={(event) =>
+                    setData((prevData) =>
+                      prevData.map((b) =>
+                        b.id === book.id
+                          ? { ...b, synopsis: event.target.value }
+                          : b
+                      )
+                    )
+                  }
+                />
+                <input
+                  type="text"
+                  value={book.coverImage}
+                  onChange={(event) =>
+                    setData((prevData) =>
+                      prevData.map((b) =>
+                        b.id === book.id
+                          ? { ...b, coverImage: event.target.value }
+                          : b
+                      )
+                    )
+                  }
+                />
+                <button
+                  onClick={() =>
+                    handleUpdate(book.id, {
+                      title: book.title,
+                      author: book.author,
+                      publicationDate: book.publicationDate,
+                      genre: book.genre,
+                      synopsis: book.synopsis,
+                      coverImage: book.coverImage,
+                    })
+                  }
+                >
+                  Save
+               
+
                 </button>
-                {addBook && (
-                    <form onSubmit={handleSubmit}>
-                        <input
-                            type="text"
-                            value={title}
-                            onChange={(event) => setTitle(event.target.value)}
-                        />
-                        <input
-                            type="text"
-                            value={publicationDate}
-                            onChange={(event) => setPublicationDate(event.target.value)}
-                        />
-                        <input
-                            type="text"
-                            value={author}
-                            onChange={(event) => setAuthor(event.target.value)}
-                        />
-                        <input
-                            type="text"
-                            value={genre}
-                            onChange={(event) => setGenre(event.target.value)}
-                        />
-                        <input
-                            type="text"
-                            value={synopsis}
-                            onChange={(event) => setSynopsis(event.target.value)}
-                        />
-                        <input
-                            type="text"
-                            value={coverImage}
-                            onChange={(event) => setCoverImage(event.target.value)}
-                        />
-                        <button type="submit">ADD</button>
-                    </form>
-                )}
-                <select name="" id="">
-                    <option value=""> Select by genre</option>
-                    {data.map((el) => (
-                        <option value={el.genre} onClick={() => setQuery(el.genre)} key={el.id}> {el.genre}</option>
-                    ))}
-                </select>
-                <select name="" id="">
-                    <option value=""> Select by date</option>
-                    {data.map((el) => (
-                        <option value={el.publicationDate} onClick={() => setQuery(el.publicationDate)} key={el.id}> {el.publicationDate}</option>
-                    ))}
-                </select>
+              </>
+            )}
 
-                <div className="cont">
+            <button onClick={() => toggleShowMore(book.id)}>
+              {showMoreId === book.id ? "Show less" : "Show More"}
+            </button>
+            {showMoreId === book.id && <p>{book.synopsis}</p>}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
 
-                    {filteredData.map((el) => (
-                        <><Link key={el.id} to={`/books/${el.id}`}>
-                            <div key={el.id}>
-                                <img src={el.coverImage} alt="cant fetch image" />
-                                <p>{el.title}</p>
-                                <p>{el.author}</p>
-                                <p>{el.genre}</p>
-                                <button onClick={() => handleDelete(el.id)}>DELETE</button>
-                                <button onClick={() => handleEdit(el.id)}>Edit</button>
-                                {el.isEditable && (
-                                    <>
-                                        <input
-                                            type="text"
-                                            value={el.title}
-                                            onChange={(event) =>
-                                                setData((prevData) =>
-                                                    prevData.map((book) =>
-                                                        book.id === el.id
-                                                            ? { ...book, title: event.target.value }
-                                                            : book
-                                                    )
-                                                )
-                                            }
-                                        />
-                                        <input
-                                            type="text"
-                                            value={el.publicationDate}
-                                            onChange={(event) =>
-                                                setData((prevData) =>
-                                                    prevData.map((book) =>
-                                                        book.id === el.id
-                                                            ? { ...book, publicationDate: event.target.value }
-                                                            : book
-                                                    )
-                                                )
-                                            }
-                                        />
-                                        <input
-                                            type="text"
-                                            value={el.author}
-                                            onChange={(event) =>
-                                                setData((prevData) =>
-                                                    prevData.map((book) =>
-                                                        book.id === el.id
-                                                            ? { ...book, author: event.target.value }
-                                                            : book
-                                                    )
-                                                )
-                                            }
-                                        />
-                                        <input
-                                            type="text"
-                                            value={el.genre}
-                                            onChange={(event) =>
-                                                setData((prevData) =>
-                                                    prevData.map((book) =>
-                                                        book.id === el.id
-                                                            ? { ...book, genre: event.target.value }
-                                                            : book
-                                                    )
-                                                )
-                                            }
-                                        />
-                                        <input
-                                            type="text"
-                                            value={el.synopsis}
-                                            onChange={(event) =>
-                                                setData((prevData) =>
-                                                    prevData.map((book) =>
-                                                        book.id === el.id
-                                                            ? { ...book, synopsis: event.target.value }
-                                                            : book
-                                                    )
-                                                )
-                                            }
-                                        />
-                                        <input
-                                            type="text"
-                                            value={el.coverImage}
-                                            onChange={(event) =>
-                                                setData((prevData) =>
-                                                    prevData.map((book) =>
-                                                        book.id === el.id
-                                                            ? { ...book, coverImage: event.target.value }
-                                                            : book
-                                                    )
-                                                )
-                                            }
-                                        />
-                                        <button
-                                            onClick={() =>
-                                                handleUpdate(el.id, {
-                                                    title: el.title,
-                                                    author: el.author,
-                                                    publicationDate: el.publicationDate,
-                                                    genre: el.genre,
-                                                    synopsis: el.synopsis,
-                                                    coverImage: el.coverImage,
-                                                })
-                                            }
-                                        >
-                                            Save
-                                        </button>
-                                    </>
-                                )}
-                                <button onClick={() => setShowMore(!showMore)}>
-                                    {showMore ? "Show less" : "Show More"}
-                                </button>
-                                {showMore && <p>{el.synopsis}</p>}
-                            </div>
-                            </Link>
-                            </>
-                        
-              
-            ))}
-                        </div>
-          
-            </div>
-
-        </>
-    )
-}
-
-export default Books
+export default Books;
